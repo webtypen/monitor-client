@@ -37,7 +37,7 @@ export class ActionsService {
         }
     }
 
-    async runAction(actionKey: string, actionConfig: any) {
+    async runAction(actionKey: string, actionConfig: any, options?: any) {
         const runId = moment().format("YYYYMMDDHHmmss") + "_" + HelperService.randomString(12);
         const action = ActionsRegistry.get(actionKey);
         if (!action) {
@@ -63,6 +63,10 @@ export class ActionsService {
         try {
             status = await action({ key: actionKey, config: actionConfig, runId: runId, log: log });
         } catch (e: any) {
+            if (options && options.debug) {
+                console.error(e);
+            }
+
             hasError = true;
             await this.sendRunActionSignal(actionKey, runId, "failed", {
                 message: e && e.toString().trim() !== "" ? e.toString() : undefined,

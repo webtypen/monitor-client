@@ -5,6 +5,8 @@ import { check } from "diskusage";
 export class SystemService {
     async getSystemData() {
         const disk = await check("/");
+        const memTotal = os.totalmem();
+        const memFree = os.freemem();
 
         return {
             arch: process.arch,
@@ -16,8 +18,9 @@ export class SystemService {
             },
             disk: disk,
             memory: {
-                free: os.freemem(),
-                total: os.totalmem(),
+                free: memFree,
+                total: memTotal,
+                usage: memTotal - memFree,
             },
             cpu: {
                 usage: await this.getCpuUsage(),

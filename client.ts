@@ -1,3 +1,4 @@
+import { runProgram } from "./lib/programs/run";
 import { startProgram } from "./lib/programs/start";
 import { statusProgram } from "./lib/programs/status";
 import { stopProgram } from "./lib/programs/stop";
@@ -14,4 +15,6 @@ if (!program || program === "version") {
     startProgram();
 } else if (program === "stop") {
     stopProgram();
+} else if (program === "run") {
+    runProgram(process.argv[3]);
 }
