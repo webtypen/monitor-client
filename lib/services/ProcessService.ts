@@ -1,6 +1,7 @@
 import fs from "fs";
 import * as child from "child_process";
 import { ConfigService } from "./ConfigService";
+import moment from "moment";
 
 export class ProcessService {
     static STATUS_STOPPED = "stopped";
@@ -24,7 +25,13 @@ export class ProcessService {
         });
         childProcess.unref();
 
-        fs.writeFileSync("./PROCESS", JSON.stringify({ pid: childProcess.pid }));
+        let data: any = {};
+        if (fs.existsSync(__dirname + "/../../PROCESS")) {
+            data = JSON.parse(fs.readFileSync(__dirname + "/../../PROCESS", "utf-8"));
+        }
+
+        data.pid = childProcess.pid;
+        fs.writeFileSync(__dirname + "/../../PROCESS", JSON.stringify(data));
         return childProcess.pid;
     }
 
@@ -45,8 +52,8 @@ export class ProcessService {
     }
 
     getProcessPid() {
-        if (fs.existsSync("./PROCESS")) {
-            let json = JSON.parse(fs.readFileSync("./PROCESS", "utf-8"));
+        if (fs.existsSync(__dirname + "/../../PROCESS")) {
+            let json = JSON.parse(fs.readFileSync(__dirname + "/../../PROCESS", "utf-8"));
             if (json && json.pid && parseInt(json.pid) > 0) {
                 return parseInt(json.pid);
             }
@@ -61,13 +68,14 @@ export class ProcessService {
         }
 
         let processes: any = {};
-        if (fs.existsSync("./PROCESS")) {
-            let json = JSON.parse(fs.readFileSync("./PROCESS", "utf-8"));
+        if (fs.existsSync(__dirname + "/../../PROCESS")) {
+            let json = JSON.parse(fs.readFileSync(__dirname + "/../../PROCESS", "utf-8"));
             if (json && json.processes) {
                 processes = json.processes;
             }
         }
 
+        let needsUpdate = false;
         const out: any = [];
         for (let key in config.processes) {
             let running = false;
@@ -85,7 +93,17 @@ export class ProcessService {
                     key: key,
                     status: "running",
                     pid: parseInt(processes[key].pid),
+                    started_at: processes[key].started_at,
                 });
+            } else {
+                if (processes[key]) {
+                    if (processes[key].status !== "stopped" || processes[key].started_at || processes[key].pid) {
+                        processes[key].status = "stopped";
+                        processes[key].started_at = null;
+                        processes[key].pid = null;
+                        needsUpdate = true;
+                    }
+                }
             }
 
             if (!running) {
@@ -95,10 +113,74 @@ export class ProcessService {
                 });
             }
         }
+
+        if (needsUpdate) {
+            let data: any = {};
+            if (fs.existsSync(__dirname + "/../../PROCESS")) {
+                data = JSON.parse(fs.readFileSync(__dirname + "/../../PROCESS", "utf-8"));
+            }
+
+            data.processes = processes;
+            fs.writeFileSync(__dirname + "/../../PROCESS", JSON.stringify(data));
+        }
+
         return out;
     }
 
-    processStart(processKey: string) {}
+    processStart(processKey: string) {
+        const config: any = ConfigService.get();
+        if (!config || !config.processes || !config.processes[processKey]) {
+            throw new Error("Process '" + processKey + "' not found ...");
+        }
 
-    processStop(processKey: string) {}
+        if (!config.processes[processKey].command || config.processes[processKey].command.trim() === "") {
+            throw new Error("Process '" + processKey + "' has no configured command ...");
+        }
+
+        const status = this.processesStatus();
+        if (status && status.length > 0) {
+            for (let entry of status) {
+                if (entry && entry.key === processKey && entry.status === "running") {
+                    throw new Error("Process '" + processKey + "' is already running on PID " + entry.pid);
+                }
+            }
+        }
+
+        const childProcess = child.spawn(config.processes[processKey].command, {
+            shell: true,
+            detached: true,
+            stdio: "ignore",
+        });
+        childProcess.unref();
+
+        const pid = childProcess.pid;
+        let data: any = {};
+        if (fs.existsSync(__dirname + "/../../PROCESS")) {
+            data = JSON.parse(fs.readFileSync(__dirname + "/../../PROCESS", "utf-8"));
+        }
+
+        if (!data.processes) {
+            data.processes = {};
+        }
+        data.processes[processKey] = {
+            key: processKey,
+            status: "running",
+            pid: pid,
+            started_at: moment().format("YYYY-MM-DD HH:mm:ss"),
+        };
+        fs.writeFileSync(__dirname + "/../../PROCESS", JSON.stringify(data));
+
+        return pid;
+    }
+
+    processStop(processKey: string) {
+        let data: any = {};
+        if (fs.existsSync(__dirname + "/../../PROCESS")) {
+            data = JSON.parse(fs.readFileSync(__dirname + "/../../PROCESS", "utf-8"));
+        }
+
+        if (!data.processes) {
+            throw new Error("No processes running ...");
+        }
+    }
 }

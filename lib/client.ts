@@ -1,4 +1,6 @@
 import { configPathProgram } from "./programs/configPath";
+import { processStartProgram } from "./programs/processStart";
+import { processStatusProgram } from "./programs/processStatus";
 import { runProgram } from "./programs/run";
 import { startProgram } from "./programs/start";
 import { statusProgram } from "./programs/status";
@@ -27,9 +29,9 @@ export class Client {
         } else if (program === "run") {
             runProgram(process.argv[3]);
         } else if (program === "process.status") {
-            // runProgram(process.argv[3]);
+            processStatusProgram();
         } else if (program === "process.start") {
-            // runProgram(process.argv[3]);
+            processStartProgram(process.argv[3]);
         } else if (program === "process.stop") {
             // runProgram(process.argv[3]);
         }
