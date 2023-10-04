@@ -1,6 +1,6 @@
 {
     "name": "@webtypen/monitor-client",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "description": "",
     "main": "index.js",
     "directories": {
@@ -20,8 +20,7 @@
         "@types/lodash": "^4.14.199",
         "@types/node": "^20.5.9",
         "@types/os-utils": "^0.0.2",
-        "@types/ssh2-sftp-client": "^9.0.1",
-        "typescript": "^5.2.2"
+        "@types/ssh2-sftp-client": "^9.0.1"
     },
     "dependencies": {
         "axios": "^1.5.1",
@@ -30,6 +29,7 @@
         "moment": "^2.29.4",
         "os-utils": "^0.0.14",
         "ssh2": "^1.14.0",
-        "ssh2-sftp-client": "^9.1.0"
+        "ssh2-sftp-client": "^9.1.0",
+        "typescript": "^5.2.2"
     }
 }
