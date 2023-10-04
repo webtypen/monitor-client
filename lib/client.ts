@@ -14,7 +14,7 @@ export class Client {
                 ? process.argv[2].trim().toLowerCase()
                 : null;
 
-        if (!program || program === "version") {
+        if (!program || program === "version" || program === "-v" || program === "--version") {
             versionProgram();
         } else if (program === "status") {
             statusProgram();
@@ -26,6 +26,12 @@ export class Client {
             configPathProgram(process.argv[3]);
         } else if (program === "run") {
             runProgram(process.argv[3]);
+        } else if (program === "process.status") {
+            // runProgram(process.argv[3]);
+        } else if (program === "process.start") {
+            // runProgram(process.argv[3]);
+        } else if (program === "process.stop") {
+            // runProgram(process.argv[3]);
         }
     }
 }

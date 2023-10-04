@@ -8,5 +8,11 @@
             "database": "simplebis_prod",
             "automation": { "mode": "daily", "times": ["18:30"] }
         }
+    },
+    "processes": {
+        "api": {
+            "command": "cd /Users/benedictromp/webdev/fsw-nodejs/api/ && node app.js",
+            "autostart": true
+        }
     }
 }
