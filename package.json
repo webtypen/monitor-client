@@ -1,6 +1,6 @@
 {
     "name": "@webtypen/monitor-client",
-    "version": "0.0.5",
+    "version": "0.0.6",
     "description": "",
     "main": "index.js",
     "directories": {
@@ -11,7 +11,7 @@
         "build": "tsc && cp config.default.json ./dist"
     },
     "bin": {
-        "wtm": "./wtm.js"
+        "wtm": "./dist/wtm.js"
     },
     "keywords": [],
     "author": "",
