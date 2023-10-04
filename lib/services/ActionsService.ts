@@ -1,6 +1,9 @@
+import fs from "fs";
+import axios from "axios";
 import moment from "moment";
 import { HelperService } from "./HelperService";
 import { ActionsRegistry } from "./ActionsRegistry";
+import { ConfigService } from "./ConfigService";
 
 export class ActionsService {
     async runActionAutomation(config: any, payload: any) {
@@ -39,7 +42,7 @@ export class ActionsService {
 
     async runAction(actionKey: string, actionConfig: any, options?: any) {
         const runId = moment().format("YYYYMMDDHHmmss") + "_" + HelperService.randomString(12);
-        const action = ActionsRegistry.get(actionKey);
+        const action = ActionsRegistry.get(actionConfig.type);
         if (!action) {
             await this.sendRunActionSignal(actionKey, runId, "failed", {
                 config: actionConfig,
@@ -60,6 +63,7 @@ export class ActionsService {
 
         let status = false;
         let hasError = false;
+        let message = null;
         try {
             status = await action({ key: actionKey, config: actionConfig, runId: runId, log: log });
         } catch (e: any) {
@@ -68,20 +72,33 @@ export class ActionsService {
             }
 
             hasError = true;
-            await this.sendRunActionSignal(actionKey, runId, "failed", {
-                message: e && e.toString().trim() !== "" ? e.toString() : undefined,
-                log: logContent,
-            });
+
+            if (e && e.toString() && e.toString().trim() !== "") {
+                message = e.toString();
+                logContent += logContent && logContent.trim() !== "" ? logContent + "\n" : "" + e.toString();
+            }
         }
 
-        if (!hasError) {
-            if (status) {
-                await this.sendRunActionSignal(actionKey, runId, "finished");
-            } else {
-                await this.sendRunActionSignal(actionKey, runId, "failed");
-            }
+        if (!hasError && status) {
+            await this.sendRunActionSignal(actionKey, runId, "finished", { message: message, log: logContent });
+        } else {
+            await this.sendRunActionSignal(actionKey, runId, "failed", { message: message, log: logContent });
         }
     }
 
-    async sendRunActionSignal(actionKey: string, runId: string, status: string, payload?: any) {}
+    async sendRunActionSignal(actionKey: string, runId: string, status: string, payload?: any) {
+        try {
+            const config: any = ConfigService.get();
+
+            await axios.post("https://monitoring-api.webtypen.de/api/actions/signal", {
+                action: actionKey,
+                run: runId,
+                status: status,
+                server: config.server,
+                payload: payload,
+            });
+        } catch (e: any) {
+            console.error(e);
+        }
+    }
 }

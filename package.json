@@ -1,13 +1,17 @@
 {
     "name": "@webtypen/monitor-client",
-    "version": "1.0.0",
+    "version": "0.0.1",
     "description": "",
     "main": "index.js",
     "directories": {
         "lib": "lib"
     },
     "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1"
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "build": "tsc && cp config.default.json ./dist"
+    },
+    "bin": {
+        "wtm": "./dist/client.js"
     },
     "keywords": [],
     "author": "",

@@ -1,0 +1,5 @@
+{
+    "server": "{SERVER_API_KEY}",
+    "heartbeat": true,
+    "heartbeatInterval": 60
+}

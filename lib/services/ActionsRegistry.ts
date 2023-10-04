@@ -1,8 +1,10 @@
+import { Command_Action } from "../actions/Command_Action";
 import { MongoDB_Backup_Action } from "../actions/MongoDB_Backup_Action";
 
 class ActionsRegistryWrapper {
     actions: { [key: string]: any } = {
-        mongodb_backup: MongoDB_Backup_Action,
+        command: Command_Action,
+        "backup.mongodb": MongoDB_Backup_Action,
     };
 
     register(key: string, func: any) {

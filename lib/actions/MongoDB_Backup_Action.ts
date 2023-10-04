@@ -3,6 +3,7 @@ import axios from "axios";
 import moment from "moment";
 import Client from "ssh2-sftp-client";
 import * as child from "child_process";
+import { ConfigService } from "../services/ConfigService";
 
 export const MongoDB_Backup_Action = async (payload: any) => {
     if (!payload) {
@@ -17,7 +18,8 @@ export const MongoDB_Backup_Action = async (payload: any) => {
         throw new Error("Missing database name ...");
     }
 
-    const config = JSON.parse(fs.readFileSync(__dirname + "/../../config.json", "utf-8"));
+    ConfigService.load();
+    const config: any = ConfigService.get();
     if (!config || !config.server || config.server.trim() === "") {
         throw new Error("Missing server config ...");
     }

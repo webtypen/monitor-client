@@ -1,12 +1,14 @@
 import fs from "fs";
 import { ActionsService } from "../services/ActionsService";
+import { ConfigService } from "../services/ConfigService";
 
 export const runProgram = async (actionKey: string) => {
     if (!actionKey || actionKey.trim() === "") {
         throw new Error("Missing action key ...");
     }
 
-    const config = JSON.parse(fs.readFileSync(__dirname + "/../../config.json", "utf-8"));
+    ConfigService.load();
+    const config: any = ConfigService.get();
     if (!config) {
         throw new Error("Config not found ...");
     }
