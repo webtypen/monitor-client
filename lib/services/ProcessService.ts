@@ -1,7 +1,8 @@
 import fs from "fs";
+import moment from "moment";
+import pstree from "ps-tree";
 import * as child from "child_process";
 import { ConfigService } from "./ConfigService";
-import moment from "moment";
 
 export class ProcessService {
     static STATUS_STOPPED = "stopped";
@@ -173,14 +174,70 @@ export class ProcessService {
         return pid;
     }
 
-    processStop(processKey: string) {
+    async processStop(processKey: string) {
         let data: any = {};
         if (fs.existsSync(__dirname + "/../../PROCESS")) {
             data = JSON.parse(fs.readFileSync(__dirname + "/../../PROCESS", "utf-8"));
         }
 
-        if (!data.processes) {
+        if (!data.processes || !data.processes[processKey]) {
             throw new Error("No processes running ...");
         }
+
+        if (
+            !data.processes[processKey].pid ||
+            parseInt(data.processes[processKey].pid) < 1 ||
+            !this.checkProcess(parseInt(data.processes[processKey].pid))
+        ) {
+            throw new Error("Process '" + processKey + "' is not running ...");
+        }
+
+        try {
+            let result: any = null;
+            try {
+                result = await new Promise((resolve, reject) => {
+                    pstree(parseInt(data.processes[processKey].pid), (err, children) => {
+                        if (err) {
+                            reject(err);
+                        } else {
+                            resolve(children);
+                        }
+                    });
+                });
+            } catch (e) {}
+
+            if (result && result.length > 0) {
+                for (let entry of result) {
+                    if (!entry) {
+                        continue;
+                    }
+
+                    const childPid = entry.PID ? entry.PID : entry.pid ? entry.pid : null;
+                    if (childPid && parseInt(childPid) > 0) {
+                        if (this.checkProcess(parseInt(childPid))) {
+                            process.kill(parseInt(childPid), 1);
+                        }
+                    }
+
+                    const ppid = entry.PPID ? entry.PPID : entry.ppid ? entry.ppid : null;
+                    if (ppid && parseInt(ppid) > 0) {
+                        if (this.checkProcess(parseInt(ppid))) {
+                            process.kill(parseInt(ppid), 1);
+                        }
+                    }
+                }
+            }
+
+            try {
+                if (this.checkProcess(parseInt(data.processes[processKey].pid))) {
+                    process.kill(parseInt(data.processes[processKey].pid), 1);
+                }
+            } catch (e) {}
+
+            return true;
+        } catch (e) {
+            console.error(e);
+        }
+        return false;
     }
 }

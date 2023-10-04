@@ -1,6 +1,7 @@
 import { configPathProgram } from "./programs/configPath";
 import { processStartProgram } from "./programs/processStart";
 import { processStatusProgram } from "./programs/processStatus";
+import { processStopProgram } from "./programs/processStop";
 import { runProgram } from "./programs/run";
 import { startProgram } from "./programs/start";
 import { statusProgram } from "./programs/status";
@@ -9,7 +10,7 @@ import { versionProgram } from "./programs/version";
 import { ConfigService } from "./services/ConfigService";
 
 export class Client {
-    boot() {
+    async boot() {
         ConfigService.load();
         const program =
             process.argv && process.argv[2] && process.argv[2].trim() !== ""
@@ -33,7 +34,7 @@ export class Client {
         } else if (program === "process.start") {
             processStartProgram(process.argv[3]);
         } else if (program === "process.stop") {
-            // runProgram(process.argv[3]);
+            await processStopProgram(process.argv[3]);
         }
     }
 }

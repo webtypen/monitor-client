@@ -46,3 +46,30 @@ Manually run an action:
 ```bash
 $ wtm run my_backup_action
 ```
+
+## Process Management
+
+Register a process:
+
+```json
+    ...
+    "processes": {
+        "api": {
+            "command": "cd /{PROJECT_DIR}/ && node app.js",
+            "autostart": true
+        }
+    }
+    ...
+```
+
+Usage:
+```bash
+# Show process state
+$ wtm process.status
+
+# Start a process
+$ wtm process.start {PROCESS_KEY}
+
+# Stop a process
+$ wtm process.stop {PROCESS_KEY}
+```
