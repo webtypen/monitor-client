@@ -63,12 +63,16 @@ Register a process:
 ```
 
 Usage:
+
 ```bash
 # Show process state
 $ wtm process.status
 
 # Start a process
 $ wtm process.start {PROCESS_KEY}
+
+# Restart a process
+$ wtm process.restart {PROCESS_KEY}
 
 # Stop a process
 $ wtm process.stop {PROCESS_KEY}
