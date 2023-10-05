@@ -22,13 +22,25 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProcessService = void 0;
 const fs_1 = __importDefault(require("fs"));
+const moment_1 = __importDefault(require("moment"));
+const ps_tree_1 = __importDefault(require("ps-tree"));
 const child = __importStar(require("child_process"));
+const ConfigService_1 = require("./ConfigService");
 class ProcessService {
     getStatus(processId) {
         const pid = processId ? processId : this.getProcessPid();
@@ -46,7 +58,12 @@ class ProcessService {
             stdio: "ignore",
         });
         childProcess.unref();
-        fs_1.default.writeFileSync("./PROCESS", JSON.stringify({ pid: childProcess.pid }));
+        let data = {};
+        if (fs_1.default.existsSync(__dirname + "/../../PROCESS")) {
+            data = JSON.parse(fs_1.default.readFileSync(__dirname + "/../../PROCESS", "utf-8"));
+        }
+        data.pid = childProcess.pid;
+        fs_1.default.writeFileSync(__dirname + "/../../PROCESS", JSON.stringify(data));
         return childProcess.pid;
     }
     stop() {
@@ -65,13 +82,192 @@ class ProcessService {
         }
     }
     getProcessPid() {
-        if (fs_1.default.existsSync("./PROCESS")) {
-            let json = JSON.parse(fs_1.default.readFileSync("./PROCESS", "utf-8"));
+        if (fs_1.default.existsSync(__dirname + "/../../PROCESS")) {
+            let json = JSON.parse(fs_1.default.readFileSync(__dirname + "/../../PROCESS", "utf-8"));
             if (json && json.pid && parseInt(json.pid) > 0) {
                 return parseInt(json.pid);
             }
         }
         return null;
+    }
+    processesStatus() {
+        const config = ConfigService_1.ConfigService.get();
+        if (!config || !config.processes || Object.keys(config.processes).length < 1) {
+            return [];
+        }
+        let processes = {};
+        if (fs_1.default.existsSync(__dirname + "/../../PROCESS")) {
+            let json = JSON.parse(fs_1.default.readFileSync(__dirname + "/../../PROCESS", "utf-8"));
+            if (json && json.processes) {
+                processes = json.processes;
+            }
+        }
+        let needsUpdate = false;
+        const out = [];
+        for (let key in config.processes) {
+            let running = false;
+            if (processes &&
+                processes[key] &&
+                processes[key].started_at &&
+                processes[key].pid &&
+                parseInt(processes[key].pid) > 0 &&
+                this.checkProcess(parseInt(processes[key].pid))) {
+                running = true;
+                out.push({
+                    key: key,
+                    status: "running",
+                    pid: parseInt(processes[key].pid),
+                    started_at: processes[key].started_at,
+                });
+            }
+            else {
+                if (processes[key]) {
+                    if (processes[key].status !== "stopped" || processes[key].started_at || processes[key].pid) {
+                        processes[key].status = "stopped";
+                        processes[key].started_at = null;
+                        processes[key].pid = null;
+                        needsUpdate = true;
+                    }
+                }
+            }
+            if (!running) {
+                out.push({
+                    key: key,
+                    status: "stopped",
+                });
+            }
+        }
+        if (needsUpdate) {
+            let data = {};
+            if (fs_1.default.existsSync(__dirname + "/../../PROCESS")) {
+                data = JSON.parse(fs_1.default.readFileSync(__dirname + "/../../PROCESS", "utf-8"));
+            }
+            data.processes = processes;
+            fs_1.default.writeFileSync(__dirname + "/../../PROCESS", JSON.stringify(data));
+        }
+        return out;
+    }
+    processStart(processKey) {
+        const config = ConfigService_1.ConfigService.get();
+        if (!config || !config.processes || !config.processes[processKey]) {
+            throw new Error("Process '" + processKey + "' not found ...");
+        }
+        if (!config.processes[processKey].command || config.processes[processKey].command.trim() === "") {
+            throw new Error("Process '" + processKey + "' has no configured command ...");
+        }
+        const status = this.processesStatus();
+        if (status && status.length > 0) {
+            for (let entry of status) {
+                if (entry && entry.key === processKey && entry.status === "running") {
+                    throw new Error("Process '" + processKey + "' is already running on PID " + entry.pid);
+                }
+            }
+        }
+        const childProcess = child.spawn(config.processes[processKey].command, {
+            shell: true,
+            detached: true,
+            stdio: "ignore",
+        });
+        childProcess.unref();
+        const pid = childProcess.pid;
+        let data = {};
+        if (fs_1.default.existsSync(__dirname + "/../../PROCESS")) {
+            data = JSON.parse(fs_1.default.readFileSync(__dirname + "/../../PROCESS", "utf-8"));
+        }
+        if (!data.processes) {
+            data.processes = {};
+        }
+        data.processes[processKey] = {
+            key: processKey,
+            status: "running",
+            pid: pid,
+            started_at: (0, moment_1.default)().format("YYYY-MM-DD HH:mm:ss"),
+        };
+        fs_1.default.writeFileSync(__dirname + "/../../PROCESS", JSON.stringify(data));
+        return pid;
+    }
+    processStop(processKey) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let data = {};
+            if (fs_1.default.existsSync(__dirname + "/../../PROCESS")) {
+                data = JSON.parse(fs_1.default.readFileSync(__dirname + "/../../PROCESS", "utf-8"));
+            }
+            if (!data.processes || !data.processes[processKey]) {
+                throw new Error("No processes running ...");
+            }
+            if (!data.processes[processKey].pid ||
+                parseInt(data.processes[processKey].pid) < 1 ||
+                !this.checkProcess(parseInt(data.processes[processKey].pid))) {
+                throw new Error("Process '" + processKey + "' is not running ...");
+            }
+            try {
+                let result = null;
+                try {
+                    result = yield new Promise((resolve, reject) => {
+                        (0, ps_tree_1.default)(parseInt(data.processes[processKey].pid), (err, children) => {
+                            if (err) {
+                                reject(err);
+                            }
+                            else {
+                                resolve(children);
+                            }
+                        });
+                    });
+                }
+                catch (e) { }
+                if (result && result.length > 0) {
+                    for (let entry of result) {
+                        if (!entry) {
+                            continue;
+                        }
+                        const childPid = entry.PID ? entry.PID : entry.pid ? entry.pid : null;
+                        if (childPid && parseInt(childPid) > 0) {
+                            if (this.checkProcess(parseInt(childPid))) {
+                                process.kill(parseInt(childPid), 1);
+                            }
+                        }
+                        const ppid = entry.PPID ? entry.PPID : entry.ppid ? entry.ppid : null;
+                        if (ppid && parseInt(ppid) > 0) {
+                            if (this.checkProcess(parseInt(ppid))) {
+                                process.kill(parseInt(ppid), 1);
+                            }
+                        }
+                    }
+                }
+                try {
+                    if (this.checkProcess(parseInt(data.processes[processKey].pid))) {
+                        process.kill(parseInt(data.processes[processKey].pid), 1);
+                    }
+                }
+                catch (e) { }
+                return true;
+            }
+            catch (e) {
+                console.error(e);
+            }
+            return false;
+        });
+    }
+    processRestart(processKey) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let data = {};
+            if (fs_1.default.existsSync(__dirname + "/../../PROCESS")) {
+                data = JSON.parse(fs_1.default.readFileSync(__dirname + "/../../PROCESS", "utf-8"));
+                if (data.processes && data.processes[processKey]) {
+                    if (data.processes[processKey].pid &&
+                        parseInt(data.processes[processKey].pid) > 0 &&
+                        this.checkProcess(parseInt(data.processes[processKey].pid))) {
+                        try {
+                            yield this.processStop(processKey);
+                        }
+                        catch (e) {
+                            console.error(e);
+                        }
+                    }
+                }
+            }
+            return yield this.processStart(processKey);
+        });
     }
 }
 exports.ProcessService = ProcessService;
