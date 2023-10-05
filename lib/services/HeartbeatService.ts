@@ -3,27 +3,37 @@ import moment from "moment";
 import { ActivitiesService } from "./ActivitiesService";
 import { SystemService } from "./SystemService";
 import { ProcessService } from "./ProcessService";
+import { ActionsService } from "./ActionsService";
 
 export class HeartbeatService {
     lastHeartbeat: any = null;
 
     async sendHeartbeat(config: any) {
         this.lastHeartbeat = moment();
+        const actionsService = new ActionsService();
         const systemService = new SystemService();
         const processService = new ProcessService();
         const data = {
             system: await systemService.getSystemData(),
             processes: processService.processesStatus(),
+            actions: actionsService.getActions(),
         };
 
         const activitiesService = new ActivitiesService();
         activitiesService.store("system.last_heartbeat", moment().format("YYYY-MM-DD HH:mm:ss"));
 
         try {
-            await axios.post("https://monitoring-api.webtypen.de/api/heartbeat", {
+            const result = await axios.post("https://monitoring-api.webtypen.de/api/heartbeat", {
+                _server: config.server,
                 data: data,
-                server: config.server,
             });
+
+            if (result && result.data && result.data.status === "success" && result.data.data) {
+                await this.handleHeartbeatResponse(config, result.data.data, {
+                    systemService: systemService,
+                    processService: processService,
+                });
+            }
         } catch (e: any) {
             console.error(e);
         }
@@ -47,5 +57,54 @@ export class HeartbeatService {
             return true;
         }
         return false;
+    }
+
+    async handleHeartbeatResponse(config: any, response: any, options?: any) {
+        if (!response || !response._id) {
+            return;
+        }
+
+        const systemService = options && options.systemService ? options.systemService : new SystemService();
+        const processService = options && options.processService ? options.processService : new ProcessService();
+
+        if (response.processes_actions_queue && Object.keys(response.processes_actions_queue).length > 0) {
+            for (let processKey in response.processes_actions_queue) {
+                if (
+                    !response.processes_actions_queue[processKey] ||
+                    !response.processes_actions_queue[processKey].action
+                ) {
+                    continue;
+                }
+
+                let error = null;
+                try {
+                    if (response.processes_actions_queue[processKey].action === "process.start") {
+                        processService.processStart(processKey);
+                    } else if (response.processes_actions_queue[processKey].action === "process.restart") {
+                        processService.processRestart(processKey);
+                    } else if (response.processes_actions_queue[processKey].action === "process.stop") {
+                        await processService.processStop(processKey);
+                    } else {
+                        throw new Error(
+                            "Unknown action-key '" + response.processes_actions_queue[processKey].action + "' ..."
+                        );
+                    }
+                } catch (e: any) {
+                    console.error(e);
+                    error = e.toString();
+                }
+
+                try {
+                    await axios.post("https://monitoring-api.webtypen.de/api/heartbeat/processes/action-result", {
+                        _server: config.server,
+                        process: processKey,
+                        action: response.processes_actions_queue[processKey].action,
+                        error: error,
+                    });
+                } catch (e) {
+                    console.error(e);
+                }
+            }
+        }
     }
 }

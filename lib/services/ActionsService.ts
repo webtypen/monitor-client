@@ -1,4 +1,3 @@
-import fs from "fs";
 import axios from "axios";
 import moment from "moment";
 import { HelperService } from "./HelperService";
@@ -6,6 +5,11 @@ import { ActionsRegistry } from "./ActionsRegistry";
 import { ConfigService } from "./ConfigService";
 
 export class ActionsService {
+    getActions() {
+        const config: any = ConfigService.get();
+        return config && config.actions && Object.keys(config.actions).length > 0 ? config.actions : null;
+    }
+
     async runActionAutomation(config: any, payload: any) {
         if (!config || !config.actions || Object.keys(config.actions).length < 1) {
             return;
