@@ -1,4 +1,5 @@
 import { configPathProgram } from "./programs/configPath";
+import { processRestartProgram } from "./programs/processRestart";
 import { processStartProgram } from "./programs/processStart";
 import { processStatusProgram } from "./programs/processStatus";
 import { processStopProgram } from "./programs/processStop";
@@ -33,6 +34,8 @@ export class Client {
             processStatusProgram();
         } else if (program === "process.start") {
             processStartProgram(process.argv[3]);
+        } else if (program === "process.restart") {
+            processRestartProgram(process.argv[3]);
         } else if (program === "process.stop") {
             await processStopProgram(process.argv[3]);
         }

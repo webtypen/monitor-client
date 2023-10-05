@@ -240,4 +240,27 @@ export class ProcessService {
         }
         return false;
     }
+
+    async processRestart(processKey: string) {
+        let data: any = {};
+        if (fs.existsSync(__dirname + "/../../PROCESS")) {
+            data = JSON.parse(fs.readFileSync(__dirname + "/../../PROCESS", "utf-8"));
+
+            if (data.processes && data.processes[processKey]) {
+                if (
+                    data.processes[processKey].pid &&
+                    parseInt(data.processes[processKey].pid) > 0 &&
+                    this.checkProcess(parseInt(data.processes[processKey].pid))
+                ) {
+                    try {
+                        await this.processStop(processKey);
+                    } catch (e) {
+                        console.error(e);
+                    }
+                }
+            }
+        }
+
+        return await this.processStart(processKey);
+    }
 }
