@@ -20,10 +20,16 @@ export class ProcessService {
     }
 
     start() {
-        const childProcess = child.spawn("ts-node", ["./lib/runner.ts"], {
-            detached: true,
-            stdio: "ignore",
-        });
+        const childProcess =
+            process.env._ && process.env._.indexOf("/bin/ts-node") > 0
+                ? child.spawn("ts-node", ["./lib/runner.ts"], {
+                      detached: true,
+                      stdio: "ignore",
+                  })
+                : child.spawn("node", ["./lib/runner"], {
+                      detached: true,
+                      stdio: "ignore",
+                  });
         childProcess.unref();
 
         let data: any = {};
