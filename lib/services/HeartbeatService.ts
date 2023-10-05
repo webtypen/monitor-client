@@ -10,20 +10,19 @@ export class HeartbeatService {
     async sendHeartbeat(config: any) {
         this.lastHeartbeat = moment();
         const systemService = new SystemService();
+        const processService = new ProcessService();
         const data = {
             system: await systemService.getSystemData(),
+            processes: processService.processesStatus(),
         };
 
         const activitiesService = new ActivitiesService();
         activitiesService.store("system.last_heartbeat", moment().format("YYYY-MM-DD HH:mm:ss"));
 
-        const processService = new ProcessService();
-
         try {
             await axios.post("https://monitoring-api.webtypen.de/api/heartbeat", {
                 data: data,
                 server: config.server,
-                processes: processService.processesStatus(),
             });
         } catch (e: any) {
             console.error(e);
