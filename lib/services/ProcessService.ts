@@ -22,11 +22,11 @@ export class ProcessService {
     start() {
         const childProcess =
             process.env._ && process.env._.indexOf("/bin/ts-node") > 0
-                ? child.spawn("ts-node", ["./lib/runner.ts"], {
+                ? child.spawn("ts-node", [__dirname + "/../runner.ts"], {
                       detached: true,
                       stdio: "ignore",
                   })
-                : child.spawn("node", ["./lib/runner"], {
+                : child.spawn("node", [__dirname + "/../runner.js"], {
                       detached: true,
                       stdio: "ignore",
                   });

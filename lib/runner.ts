@@ -24,6 +24,18 @@ const run = async () => {
 };
 
 setInterval(() => {
-    run();
+    try {
+        run();
+    } catch (e: any) {
+        const logPath = __dirname + "/../temp/logs/";
+        if (!fs.existsSync(logPath)) {
+            fs.mkdirSync(logPath, { recursive: true });
+        }
+
+        fs.appendFileSync(
+            logPath + "/" + moment("YYYY-MM-DD") + "_log.txt",
+            "[" + moment().format("YYYY-MM-DD HH:mm") + "] " + e.toString()
+        );
+    }
 }, 1000);
 run();
