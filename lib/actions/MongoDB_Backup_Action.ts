@@ -161,8 +161,16 @@ export const MongoDB_Backup_Action = async (payload: any) => {
         console.error(e);
     }
 
-    if (fs.existsSync(__dirname + "/../../temp/" + payload.runId)) {
-        fs.rmSync(__dirname + "/../../temp/" + payload.runId, { recursive: true });
+    if (payload.config && payload.config.moveBackup && payload.config.moveBackup.trim() !== "") {
+        if (fs.existsSync(backupPath)) {
+            fs.renameSync(backupPath, payload.config.moveBackup.trim());
+        }
+    }
+
+    if (!payload.config || !payload.config.keepBackup) {
+        if (fs.existsSync(__dirname + "/../../temp/" + payload.runId)) {
+            fs.rmSync(__dirname + "/../../temp/" + payload.runId, { recursive: true });
+        }
     }
 
     if (
