@@ -12,6 +12,6 @@ export const versionProgram = () => {
 
     const apiUrl = ConfigService.getApiUrl();
     if (apiUrl && apiUrl.trim() !== "https://monitoring-api.webtypen.de") {
-        log("   - Use custom api: ");
+        log("   - Use custom api: " + apiUrl.trim());
     }
 };
