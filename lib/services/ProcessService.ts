@@ -267,6 +267,11 @@ export class ProcessService {
             }
         }
 
-        return await this.processStart(processKey);
+        try {
+            await this.processStart(processKey);
+        } catch (e: any) {
+            console.error(e);
+            throw new Error(e);
+        }
     }
 }

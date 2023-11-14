@@ -69,6 +69,7 @@ export class HeartbeatService {
         const systemService = options && options.systemService ? options.systemService : new SystemService();
         const processService = options && options.processService ? options.processService : new ProcessService();
 
+        // Processes Queue
         let needsNewHeartbeat = false;
         if (response.processes_actions_queue && Object.keys(response.processes_actions_queue).length > 0) {
             for (let processKey in response.processes_actions_queue) {
@@ -113,6 +114,35 @@ export class HeartbeatService {
 
         if (needsNewHeartbeat) {
             await this.sendHeartbeat(config, { skipHandleResponse: true });
+        }
+
+        // Actions Queue
+        if (response.actions_queue && Object.keys(response.actions_queue).length > 0) {
+            for (let actionKey in response.actions_queue) {
+                try {
+                    await axios.post("https://monitoring-api.webtypen.de/api/heartbeat/actions/started", {
+                        _server: config.server,
+                        action: actionKey,
+                    });
+                } catch (e) {
+                    console.error(e);
+                }
+
+                if (!actionKey) {
+                    continue;
+                }
+
+                if (!config.actions || !config.actions[actionKey]) {
+                    continue;
+                }
+
+                const service = new ActionsService();
+                try {
+                    await service.runAction(actionKey, config.actions[actionKey], { debug: true });
+                } catch (e) {
+                    console.error(e);
+                }
+            }
         }
     }
 }
