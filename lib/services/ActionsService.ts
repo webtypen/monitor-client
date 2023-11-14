@@ -1,5 +1,5 @@
 import axios from "axios";
-import moment from "moment";
+import moment from "moment-timezone";
 import { HelperService } from "./HelperService";
 import { ActionsRegistry } from "./ActionsRegistry";
 import { ConfigService } from "./ConfigService";

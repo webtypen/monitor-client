@@ -1,5 +1,5 @@
 import axios from "axios";
-import moment from "moment";
+import moment from "moment-timezone";
 import { ActivitiesService } from "./ActivitiesService";
 import { SystemService } from "./SystemService";
 import { ProcessService } from "./ProcessService";
@@ -8,7 +8,7 @@ import { ActionsService } from "./ActionsService";
 export class HeartbeatService {
     lastHeartbeat: any = null;
 
-    async sendHeartbeat(config: any) {
+    async sendHeartbeat(config: any, options?: any) {
         this.lastHeartbeat = moment();
         const actionsService = new ActionsService();
         const systemService = new SystemService();
@@ -29,10 +29,12 @@ export class HeartbeatService {
             });
 
             if (result && result.data && result.data.status === "success" && result.data.data) {
-                await this.handleHeartbeatResponse(config, result.data.data, {
-                    systemService: systemService,
-                    processService: processService,
-                });
+                if (!options || !options.skipHandleResponse) {
+                    await this.handleHeartbeatResponse(config, result.data.data, {
+                        systemService: systemService,
+                        processService: processService,
+                    });
+                }
             }
         } catch (e: any) {
             console.error(e);
@@ -67,6 +69,7 @@ export class HeartbeatService {
         const systemService = options && options.systemService ? options.systemService : new SystemService();
         const processService = options && options.processService ? options.processService : new ProcessService();
 
+        let needsNewHeartbeat = false;
         if (response.processes_actions_queue && Object.keys(response.processes_actions_queue).length > 0) {
             for (let processKey in response.processes_actions_queue) {
                 if (
@@ -94,6 +97,7 @@ export class HeartbeatService {
                     error = e.toString();
                 }
 
+                needsNewHeartbeat = true;
                 try {
                     await axios.post("https://monitoring-api.webtypen.de/api/heartbeat/processes/action-result", {
                         _server: config.server,
@@ -105,6 +109,10 @@ export class HeartbeatService {
                     console.error(e);
                 }
             }
+        }
+
+        if (needsNewHeartbeat) {
+            await this.sendHeartbeat(config, { skipHandleResponse: true });
         }
     }
 }

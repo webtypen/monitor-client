@@ -1,5 +1,5 @@
 import fs from "fs";
-import moment from "moment";
+import moment from "moment-timezone";
 import pstree from "ps-tree";
 import * as child from "child_process";
 import { ConfigService } from "./ConfigService";

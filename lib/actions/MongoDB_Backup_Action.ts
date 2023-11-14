@@ -1,6 +1,6 @@
 import fs from "fs";
 import axios from "axios";
-import moment from "moment";
+import moment from "moment-timezone";
 import Client from "ssh2-sftp-client";
 import * as child from "child_process";
 import { ConfigService } from "../services/ConfigService";

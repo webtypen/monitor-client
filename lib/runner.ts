@@ -1,14 +1,21 @@
 import fs from "fs";
-import moment from "moment";
+import moment from "moment-timezone";
 import { HeartbeatService } from "./services/HeartbeatService";
 import { ActionsService } from "./services/ActionsService";
 import { ConfigService } from "./services/ConfigService";
+
+moment.tz.setDefault("Europe/Berlin");
 
 const heartbeatService = new HeartbeatService();
 const actionsService = new ActionsService();
 
 const run = async () => {
     ConfigService.load();
+
+    const config: any = ConfigService.get();
+    if (config && config.timezone && config.timezone.trim() !== "") {
+        moment.tz.setDefault(config.timezone);
+    }
 
     const date = moment().format("YYYY-MM-DD");
     const time = moment().format("HH:mm:ss");
@@ -19,7 +26,6 @@ const run = async () => {
     if (heartbeatService.needsHeartbeat(ConfigService.get(), activities)) {
         heartbeatService.sendHeartbeat(ConfigService.get());
     }
-
     actionsService.runActionAutomation(ConfigService.get(), { time: time, date: date });
 };
 
