@@ -94,7 +94,7 @@ export class ActionsService {
         try {
             const config: any = ConfigService.get();
 
-            await axios.post("https://monitoring-api.webtypen.de/api/actions/signal", {
+            await axios.post(ConfigService.getApiUrl("/api/actions/signal"), {
                 action: actionKey,
                 run: runId,
                 status: status,

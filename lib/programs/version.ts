@@ -1,4 +1,5 @@
 import fs from "fs";
+import { ConfigService } from "../services/ConfigService";
 
 export const versionProgram = () => {
     const { log } = console;
@@ -8,4 +9,9 @@ export const versionProgram = () => {
             : __dirname + "/../../../package.json";
     const packageJson = JSON.parse(fs.readFileSync(path, "utf-8"));
     log("Installed version: " + packageJson.version + " (" + packageJson.name + ")");
+
+    const apiUrl = ConfigService.getApiUrl();
+    if (apiUrl && apiUrl.trim() !== "https://monitoring-api.webtypen.de") {
+        log("   - Use custom api: ");
+    }
 };

@@ -30,6 +30,16 @@ class ConfigServiceWrapper {
     get() {
         return this.config;
     }
+    getApiUrl(path) {
+        if (!this.config) {
+            this.load();
+        }
+        let apiBase = "https://monitoring-api.webtypen.de";
+        if (this.config && this.config.api !== undefined && this.config.api && this.config.api.trim() !== "") {
+            apiBase = this.config.api.trim();
+        }
+        return apiBase + (path ? path.trim() : "");
+    }
     set(key, value) {
         if (!this.config) {
             throw new Error("No config loaded ...");

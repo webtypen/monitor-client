@@ -37,7 +37,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProcessService = void 0;
 const fs_1 = __importDefault(require("fs"));
-const moment_1 = __importDefault(require("moment"));
+const moment_timezone_1 = __importDefault(require("moment-timezone"));
 const ps_tree_1 = __importDefault(require("ps-tree"));
 const child = __importStar(require("child_process"));
 const ConfigService_1 = require("./ConfigService");
@@ -53,10 +53,15 @@ class ProcessService {
         return ProcessService.STATUS_STOPPED;
     }
     start() {
-        const childProcess = child.spawn("ts-node", ["./lib/runner.ts"], {
-            detached: true,
-            stdio: "ignore",
-        });
+        const childProcess = process.env._ && process.env._.indexOf("/bin/ts-node") > 0
+            ? child.spawn("ts-node", [__dirname + "/../runner.ts"], {
+                detached: true,
+                stdio: "ignore",
+            })
+            : child.spawn("node", [__dirname + "/../runner.js"], {
+                detached: true,
+                stdio: "ignore",
+            });
         childProcess.unref();
         let data = {};
         if (fs_1.default.existsSync(__dirname + "/../../PROCESS")) {
@@ -181,7 +186,7 @@ class ProcessService {
             key: processKey,
             status: "running",
             pid: pid,
-            started_at: (0, moment_1.default)().format("YYYY-MM-DD HH:mm:ss"),
+            started_at: (0, moment_timezone_1.default)().format("YYYY-MM-DD HH:mm:ss"),
         };
         fs_1.default.writeFileSync(__dirname + "/../../PROCESS", JSON.stringify(data));
         return pid;
@@ -266,7 +271,13 @@ class ProcessService {
                     }
                 }
             }
-            return yield this.processStart(processKey);
+            try {
+                yield this.processStart(processKey);
+            }
+            catch (e) {
+                console.error(e);
+                throw new Error(e);
+            }
         });
     }
 }

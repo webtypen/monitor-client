@@ -13,16 +13,21 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const fs_1 = __importDefault(require("fs"));
-const moment_1 = __importDefault(require("moment"));
+const moment_timezone_1 = __importDefault(require("moment-timezone"));
 const HeartbeatService_1 = require("./services/HeartbeatService");
 const ActionsService_1 = require("./services/ActionsService");
 const ConfigService_1 = require("./services/ConfigService");
+moment_timezone_1.default.tz.setDefault("Europe/Berlin");
 const heartbeatService = new HeartbeatService_1.HeartbeatService();
 const actionsService = new ActionsService_1.ActionsService();
 const run = () => __awaiter(void 0, void 0, void 0, function* () {
     ConfigService_1.ConfigService.load();
-    const date = (0, moment_1.default)().format("YYYY-MM-DD");
-    const time = (0, moment_1.default)().format("HH:mm:ss");
+    const config = ConfigService_1.ConfigService.get();
+    if (config && config.timezone && config.timezone.trim() !== "") {
+        moment_timezone_1.default.tz.setDefault(config.timezone);
+    }
+    const date = (0, moment_timezone_1.default)().format("YYYY-MM-DD");
+    const time = (0, moment_timezone_1.default)().format("HH:mm:ss");
     const activities = fs_1.default.existsSync(__dirname + "/../activities.json")
         ? JSON.parse(fs_1.default.readFileSync(__dirname + "/../activities.json", "utf-8"))
         : {};
@@ -32,6 +37,15 @@ const run = () => __awaiter(void 0, void 0, void 0, function* () {
     actionsService.runActionAutomation(ConfigService_1.ConfigService.get(), { time: time, date: date });
 });
 setInterval(() => {
-    run();
+    try {
+        run();
+    }
+    catch (e) {
+        const logPath = __dirname + "/../temp/logs/";
+        if (!fs_1.default.existsSync(logPath)) {
+            fs_1.default.mkdirSync(logPath, { recursive: true });
+        }
+        fs_1.default.appendFileSync(logPath + "/" + (0, moment_timezone_1.default)("YYYY-MM-DD") + "_log.txt", "[" + (0, moment_timezone_1.default)().format("YYYY-MM-DD HH:mm") + "] " + e.toString());
+    }
 }, 1000);
 run();

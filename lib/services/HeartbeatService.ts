@@ -4,6 +4,7 @@ import { ActivitiesService } from "./ActivitiesService";
 import { SystemService } from "./SystemService";
 import { ProcessService } from "./ProcessService";
 import { ActionsService } from "./ActionsService";
+import { ConfigService } from "./ConfigService";
 
 export class HeartbeatService {
     lastHeartbeat: any = null;
@@ -23,7 +24,7 @@ export class HeartbeatService {
         activitiesService.store("system.last_heartbeat", moment().format("YYYY-MM-DD HH:mm:ss"));
 
         try {
-            const result = await axios.post("https://monitoring-api.webtypen.de/api/heartbeat", {
+            const result = await axios.post(ConfigService.getApiUrl("/api/heartbeat"), {
                 _server: config.server,
                 data: data,
             });
@@ -100,7 +101,7 @@ export class HeartbeatService {
 
                 needsNewHeartbeat = true;
                 try {
-                    await axios.post("https://monitoring-api.webtypen.de/api/heartbeat/processes/action-result", {
+                    await axios.post(ConfigService.getApiUrl("/api/heartbeat/processes/action-result"), {
                         _server: config.server,
                         process: processKey,
                         action: response.processes_actions_queue[processKey].action,
@@ -120,7 +121,7 @@ export class HeartbeatService {
         if (response.actions_queue && Object.keys(response.actions_queue).length > 0) {
             for (let actionKey in response.actions_queue) {
                 try {
-                    await axios.post("https://monitoring-api.webtypen.de/api/heartbeat/actions/started", {
+                    await axios.post(ConfigService.getApiUrl("/api/heartbeat/actions/started"), {
                         _server: config.server,
                         action: actionKey,
                     });

@@ -14,11 +14,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ActionsService = void 0;
 const axios_1 = __importDefault(require("axios"));
-const moment_1 = __importDefault(require("moment"));
+const moment_timezone_1 = __importDefault(require("moment-timezone"));
 const HelperService_1 = require("./HelperService");
 const ActionsRegistry_1 = require("./ActionsRegistry");
 const ConfigService_1 = require("./ConfigService");
 class ActionsService {
+    getActions() {
+        const config = ConfigService_1.ConfigService.get();
+        return config && config.actions && Object.keys(config.actions).length > 0 ? config.actions : null;
+    }
     runActionAutomation(config, payload) {
         return __awaiter(this, void 0, void 0, function* () {
             if (!config || !config.actions || Object.keys(config.actions).length < 1) {
@@ -51,7 +55,7 @@ class ActionsService {
     }
     runAction(actionKey, actionConfig, options) {
         return __awaiter(this, void 0, void 0, function* () {
-            const runId = (0, moment_1.default)().format("YYYYMMDDHHmmss") + "_" + HelperService_1.HelperService.randomString(12);
+            const runId = (0, moment_timezone_1.default)().format("YYYYMMDDHHmmss") + "_" + HelperService_1.HelperService.randomString(12);
             const action = ActionsRegistry_1.ActionsRegistry.get(actionConfig.type);
             if (!action) {
                 yield this.sendRunActionSignal(actionKey, runId, "failed", {
@@ -95,7 +99,7 @@ class ActionsService {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const config = ConfigService_1.ConfigService.get();
-                yield axios_1.default.post("https://monitoring-api.webtypen.de/api/actions/signal", {
+                yield axios_1.default.post(ConfigService_1.ConfigService.getApiUrl("/api/actions/signal"), {
                     action: actionKey,
                     run: runId,
                     status: status,

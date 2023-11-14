@@ -68,7 +68,7 @@ export const MongoDB_Backup_Action = async (payload: any) => {
     let configRequest: any = null;
     try {
         configRequest = await axios.post(
-            "https://monitoring-api.webtypen.de/api/upload",
+            ConfigService.getApiUrl("/api/upload"),
             {
                 serverid: config.server,
                 upload_type: "backup",
@@ -137,7 +137,7 @@ export const MongoDB_Backup_Action = async (payload: any) => {
 
     const handleError = async () => {
         try {
-            axios.post("https://monitoring-api.webtypen.de/api/upload/error", {
+            axios.post(ConfigService.getApiUrl("/api/upload/error"), {
                 serverid: config.server,
                 _id: uploadConfig._id,
             });
@@ -153,7 +153,7 @@ export const MongoDB_Backup_Action = async (payload: any) => {
 
     let response = null;
     try {
-        response = await axios.post("https://monitoring-api.webtypen.de/api/upload/finish", {
+        response = await axios.post(ConfigService.getApiUrl("/api/upload/finish"), {
             serverid: config.server,
             _id: uploadConfig._id,
         });

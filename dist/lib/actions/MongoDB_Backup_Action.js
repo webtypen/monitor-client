@@ -38,7 +38,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.MongoDB_Backup_Action = void 0;
 const fs_1 = __importDefault(require("fs"));
 const axios_1 = __importDefault(require("axios"));
-const moment_1 = __importDefault(require("moment"));
+const moment_timezone_1 = __importDefault(require("moment-timezone"));
 const ssh2_sftp_client_1 = __importDefault(require("ssh2-sftp-client"));
 const child = __importStar(require("child_process"));
 const ConfigService_1 = require("../services/ConfigService");
@@ -58,8 +58,8 @@ const MongoDB_Backup_Action = (payload) => __awaiter(void 0, void 0, void 0, fun
         throw new Error("Missing server config ...");
     }
     const backupName = (payload.config.filename ? payload.conftig.filename : "backup" + (payload.config.gzip ? ".gzip" : ".mongodump"))
-        .replaceAll("{date}", (0, moment_1.default)().format("YYYY-MM-DD"))
-        .replaceAll("{time}", (0, moment_1.default)().format("HH-mm"))
+        .replaceAll("{date}", (0, moment_timezone_1.default)().format("YYYY-MM-DD"))
+        .replaceAll("{time}", (0, moment_timezone_1.default)().format("HH-mm"))
         .replaceAll("{database}", payload.config.database)
         .replaceAll("{runId}", payload.runId);
     const backupPath = __dirname + "/../../temp/" + payload.runId + "/" + backupName;
@@ -94,10 +94,10 @@ const MongoDB_Backup_Action = (payload) => __awaiter(void 0, void 0, void 0, fun
     }
     let configRequest = null;
     try {
-        configRequest = yield axios_1.default.post("https://monitoring-api.webtypen.de/api/upload", {
+        configRequest = yield axios_1.default.post(ConfigService_1.ConfigService.getApiUrl("/api/upload"), {
             serverid: config.server,
             upload_type: "backup",
-            filename: (0, moment_1.default)().format("YYYY-MM-DD") + "_mongodb_backup.gzip",
+            filename: (0, moment_timezone_1.default)().format("YYYY-MM-DD") + "_mongodb_backup.gzip",
         }, {
             headers: {
                 "Content-Type": "application/json", // Wichtig: Setzen Sie den Content-Type richtig
@@ -152,7 +152,7 @@ const MongoDB_Backup_Action = (payload) => __awaiter(void 0, void 0, void 0, fun
     });
     const handleError = () => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            axios_1.default.post("https://monitoring-api.webtypen.de/api/upload/error", {
+            axios_1.default.post(ConfigService_1.ConfigService.getApiUrl("/api/upload/error"), {
                 serverid: config.server,
                 _id: uploadConfig._id,
             });
@@ -167,7 +167,7 @@ const MongoDB_Backup_Action = (payload) => __awaiter(void 0, void 0, void 0, fun
     }
     let response = null;
     try {
-        response = yield axios_1.default.post("https://monitoring-api.webtypen.de/api/upload/finish", {
+        response = yield axios_1.default.post(ConfigService_1.ConfigService.getApiUrl("/api/upload/finish"), {
             serverid: config.server,
             _id: uploadConfig._id,
         });
@@ -175,8 +175,15 @@ const MongoDB_Backup_Action = (payload) => __awaiter(void 0, void 0, void 0, fun
     catch (e) {
         console.error(e);
     }
-    if (fs_1.default.existsSync(__dirname + "/../../temp/" + payload.runId)) {
-        fs_1.default.rmSync(__dirname + "/../../temp/" + payload.runId, { recursive: true });
+    if (payload.config && payload.config.moveBackup && payload.config.moveBackup.trim() !== "") {
+        if (fs_1.default.existsSync(backupPath)) {
+            fs_1.default.renameSync(backupPath, payload.config.moveBackup.trim());
+        }
+    }
+    if (!payload.config || !payload.config.keepBackup) {
+        if (fs_1.default.existsSync(__dirname + "/../../temp/" + payload.runId)) {
+            fs_1.default.rmSync(__dirname + "/../../temp/" + payload.runId, { recursive: true });
+        }
     }
     if (response &&
         response.data &&

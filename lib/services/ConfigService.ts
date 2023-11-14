@@ -2,7 +2,7 @@ import fs from "fs";
 import lodash from "lodash";
 
 class ConfigServiceWrapper {
-    config = null;
+    config: any = null;
 
     load() {
         const mainPath = __dirname + "/../../config.json";
@@ -25,6 +25,19 @@ class ConfigServiceWrapper {
 
     get() {
         return this.config;
+    }
+
+    getApiUrl(path?: string | null) {
+        if (!this.config) {
+            this.load();
+        }
+
+        let apiBase = "https://monitoring-api.webtypen.de";
+        if (this.config && this.config.api !== undefined && this.config.api && this.config.api.trim() !== "") {
+            apiBase = this.config.api.trim();
+        }
+
+        return apiBase + (path ? path.trim() : "");
     }
 
     set(key: string, value?: any) {
