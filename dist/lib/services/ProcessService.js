@@ -168,11 +168,24 @@ class ProcessService {
                 }
             }
         }
-        const childProcess = child.spawn(config.processes[processKey].command, {
-            shell: true,
-            detached: true,
-            stdio: "ignore",
-        });
+        const command = Buffer.from(JSON.stringify({
+            processKey: processKey,
+            command: config.processes[processKey].command,
+            restart: config.processes[processKey].restart ? true : false,
+            restartTimeout: config.processes[processKey].restartTimeout
+                ? config.processes[processKey].restartTimeout
+                : null,
+            errors: config.processes[processKey].errors ? true : false,
+        })).toString("base64");
+        const childProcess = process.env._ && process.env._.indexOf("/bin/ts-node") > 0
+            ? child.spawn("ts-node", [__dirname + "/../process.ts", command], {
+                detached: true,
+                stdio: "ignore",
+            })
+            : child.spawn("node", [__dirname + "/../process.js", command], {
+                detached: true,
+                stdio: "ignore",
+            });
         childProcess.unref();
         const pid = childProcess.pid;
         let data = {};

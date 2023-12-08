@@ -15,7 +15,7 @@ const versionProgram = () => {
     log("Installed version: " + packageJson.version + " (" + packageJson.name + ")");
     const apiUrl = ConfigService_1.ConfigService.getApiUrl();
     if (apiUrl && apiUrl.trim() !== "https://monitoring-api.webtypen.de") {
-        log("   - Use custom api: ");
+        log("   - Use custom api: " + apiUrl.trim());
     }
 };
 exports.versionProgram = versionProgram;
